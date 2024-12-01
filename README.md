@@ -23,20 +23,25 @@ Ensure you have the following installed:
 ---
 ## ENDPOINTS
 - **http://127.0.0.1:8000/chat/<chatroom_name>/  (for websocket connecting )
-# json format {"message": message,  "sender":sender}
-
+json format 
+[
+{
+    "message": message,  "sender":sender
+    }
+]
 
 - **http://127.0.0.1:8000/message_api/room/  (restapi for get,put,delete room)
-
-# json format 
+json format 
+[
     {
         "id": 1,
         "created_at": "2024-11-30T18:10:33.187438Z",
         "room": "probel1"
     }
+]
 
 - **http://127.0.0.1:8000/message_api/user/ (restapi for get,post,delete user)
-# json format 
+ json format 
 [
     {
         "id": 1,
@@ -46,7 +51,7 @@ Ensure you have the following installed:
 
 
 - **http://127.0.0.1:8000/message_api/message/  (restapi for get,posting,deleting messages)
-# format [
+ format [
     {
         "id": 1,
         "user_name": {
