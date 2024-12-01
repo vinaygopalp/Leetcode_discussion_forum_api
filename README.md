@@ -6,9 +6,8 @@ A brief description of your project, including its purpose and key functionaliti
 
 ## Features
 
-- **Feature 1:** websocket connection
-- **Feature 2:** RESTAPI for fetching.
-
+- **Feature 1:** WebSocket connection.
+- **Feature 2:** REST API for data fetching and management.
 
 ---
 
@@ -21,54 +20,82 @@ Ensure you have the following installed:
 - **pip** (ensure it's updated: `pip install --upgrade pip`)
 
 ---
-## ENDPOINTS
-- **http://127.0.0.1:8000/chat/<chatroom_name>/  (for websocket connecting )
-json format 
-[
-{
-    "message": message,  "sender":sender
-    }
-]
 
-- **http://127.0.0.1:8000/message_api/room/  (restapi for get,put,delete room)
-json format 
-[
+## Endpoints
+
+### **WebSocket Connection**
+- **Endpoint:** `ws://127.0.0.1:8000/chat/<chatroom_name>/`  
+  - **Purpose:** Establish a WebSocket connection for live chat.
+  - **Sample JSON Message:**
+    ```json
     {
-        "id": 1,
-        "created_at": "2024-11-30T18:10:33.187438Z",
-        "room": "probel1"
+        "message": "Hello, World!",
+        "sender": "user_name"
     }
-]
+    ```
 
-- **http://127.0.0.1:8000/message_api/user/ (restapi for get,post,delete user)
- json format 
-[
-    {
-        "id": 1,
-        "user_name": "vinay"
-    }
-]
+---
 
+### **REST APIs**
 
-- **http://127.0.0.1:8000/message_api/message/  (restapi for get,posting,deleting messages)
- format [
-    {
-        "id": 1,
-        "user_name": {
+#### **Room Management**
+- **Endpoint:** `http://127.0.0.1:8000/message_api/room/`  
+  - **Methods:** GET, PUT, DELETE
+  - **Purpose:** Manage chat rooms.
+  - **Sample JSON Response:**
+    ```json
+    [
+        {
+            "id": 1,
+            "created_at": "2024-11-30T18:10:33.187438Z",
+            "room": "room_name"
+        }
+    ]
+    ```
+
+---
+
+#### **User Management**
+- **Endpoint:** `http://127.0.0.1:8000/message_api/user/`  
+  - **Methods:** GET, POST, DELETE
+  - **Purpose:** Manage users.
+  - **Sample JSON Response:**
+    ```json
+    [
+        {
             "id": 1,
             "user_name": "vinay"
-        },
-        "room": {
-            "id": 4,
-            "created_at": "2024-11-30T18:10:55.289960Z",
-            "room": "problem2"
-        },
-        "content": "fuck",
-        "timestamp": "2024-11-30T18:11:25.156366Z"
-    },
-   
-]
+        }
+    ]
+    ```
 
+---
+
+#### **Message Management**
+- **Endpoint:** `http://127.0.0.1:8000/message_api/message/`  
+  - **Methods:** GET, POST, DELETE
+  - **Purpose:** Manage chat messages.
+  - **Sample JSON Response:**
+    ```json
+    [
+        {
+            "id": 1,
+            "user_name": {
+                "id": 1,
+                "user_name": "vinay"
+            },
+            "room": {
+                "id": 4,
+                "created_at": "2024-11-30T18:10:55.289960Z",
+                "room": "problem2"
+            },
+            "content": "Hello!",
+            "timestamp": "2024-11-30T18:11:25.156366Z"
+        }
+    ]
+    ```
+
+---
 
 ## Installation
 
