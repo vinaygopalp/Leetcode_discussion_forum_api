@@ -25,6 +25,5 @@ urlpatterns = [
     # path('discussion_form/', include('discussion_form.urls')),
     path('api-auth/', include('rest_framework.urls')),
     path('message_api/', include('message_api.urls')),
-   
     path('auth/', include('authentications.urls')),
 ]

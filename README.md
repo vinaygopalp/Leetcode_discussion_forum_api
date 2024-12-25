@@ -8,6 +8,7 @@ A brief description of your project, including its purpose and key functionaliti
 
 - **Feature 1:** WebSocket connection.
 - **Feature 2:** REST API for data fetching and management.
+- **Feature 3:** JWT-based authentication with endpoints for login, registration, and token refresh.
 
 ---
 
@@ -93,6 +94,73 @@ Ensure you have the following installed:
             "timestamp": "2024-11-30T18:11:25.156366Z"
         }
     ]
+    ```
+
+---
+
+#### **Authentication**
+
+##### **Login**
+- **Endpoint:** `http://127.0.0.1:8000/auth/login/`  
+  - **Method:** POST
+  - **Purpose:** Authenticate a user and retrieve access/refresh tokens.
+  - **Sample Request:**
+    ```json
+    {
+        "username": "fuckkk",
+        "password": "123",
+        "roles": "admin,user"
+    }
+    ```
+  - **Sample Response:**
+    ```json
+    {
+        "refresh": "<refresh_token>",
+        "access": "<access_token>"
+    }
+    ```
+
+##### **Token Pair**
+- **Endpoint:** `http://127.0.0.1:8000/auth/api/token/`  
+  - **Method:** POST
+  - **Purpose:** Obtain a new access and refresh token pair.
+  - **Sample Request:**
+    ```json
+    {
+        "username": "vinay",
+        "password": "123",
+        "roles": "admin,user"
+    }
+    ```
+
+##### **Token Refresh**
+- **Endpoint:** `http://127.0.0.1:8000/auth/api/token/refresh/`  
+  - **Method:** POST
+  - **Purpose:** Refresh the access token using the refresh token.
+  - **Sample Request:**
+    ```json
+    {
+        "refresh": "<refresh_token>"
+    }
+    ```
+
+##### **Register**
+- **Endpoint:** `http://127.0.0.1:8000/auth/register/`  
+  - **Method:** POST
+  - **Purpose:** Register a new user.
+  - **Sample Request:**
+    ```json
+    {
+        "username": "fuckkk",
+        "password": "123",
+        "roles": "admin,user"
+    }
+    ```
+  - **Sample Response:**
+    ```json
+    {
+        "status": "User created"
+    }
     ```
 
 ---
