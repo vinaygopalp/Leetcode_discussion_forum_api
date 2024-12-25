@@ -27,12 +27,21 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
+REST_FRAMEWORK = {
+     
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+         
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+   
+}
 # Application definition
 
 INSTALLED_APPS = [
+    'rest_framework_simplejwt',
     'rest_framework',
-    'message_api',  
+    'message_api', 
+    'authentications', 
     "daphne",
     'django.contrib.admin',
     'django.contrib.auth',
