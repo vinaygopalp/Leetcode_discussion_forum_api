@@ -1,7 +1,6 @@
-# Project Name
+# Leetcode CLone
 
-A brief description of your project, including its purpose and key functionalities.
-
+just tried to clone Leetcode functionalties 
 ---
 
 ## Features
