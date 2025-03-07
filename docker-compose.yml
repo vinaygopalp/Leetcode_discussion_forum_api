@@ -4,7 +4,8 @@ services:
   redis:
     image: redis:7.0.0
     ports:
-      - "6379:6379"
+      # - "6379:6379"
+      -"18638:18638"
     
   
   web:

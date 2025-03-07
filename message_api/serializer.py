@@ -6,7 +6,7 @@ from chat.models import *
 # Serializers define the API representation.
 class User_serializer(serializers.ModelSerializer):
     class Meta:
-        model = User
+        model = User_base
         fields = '__all__'
 class ChatRoom_serializer(serializers.ModelSerializer):
     class Meta:

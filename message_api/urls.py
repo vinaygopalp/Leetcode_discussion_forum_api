@@ -10,5 +10,6 @@ urlpatterns = [
     path("message/", views.get_message, name="get_message"),
     path("room/", views.add_room, name="add_room"),
     path("user/", views.add_user, name="add_user"),
+    path("comp/", views.compexlity_analysis, name="openai"),
 # 
 ]

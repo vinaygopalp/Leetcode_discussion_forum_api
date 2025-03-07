@@ -11,7 +11,10 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
-
+import os
+from dotenv import load_dotenv
+ 
+load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -62,7 +65,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-import os
+ 
 ROOT_URLCONF = 'Leetcode.urls'
 ASGI_APPLICATION = "Leetcode.asgi.application"
 TEMPLATES = [
@@ -89,21 +92,28 @@ WSGI_APPLICATION = 'Leetcode.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
- 
+  
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-    # 'default':{
-    #     'ENGINE': 'django.db.backends.postgresql',
-    #     'NAME': 'api',
-    #     'USER': 'postgres',
-    #     'PASSWORD': 'vinay@2003',
-    #     'HOST': 'localhost',    
-    #     'PORT': '5435',
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.sqlite3',
+    #     'NAME': BASE_DIR / 'db.sqlite3',
     # }
+    'default':{
+        'ENGINE':'django.db.backends.postgresql',
+        'NAME': os.getenv('NAME'),
+        'USER': os.getenv('USER'), 
+        'PASSWORD': 'Vinay@2003',
+        'HOST': os.getenv('HOST'),
+    }
 }
+        # 'ENGINE': 'postgresql://postgres:[YOUR-PASSWORD]@db.emadhrxdakgsydwvtxpf.supabase.co:5432/postgres  ',
+        # 'NAME': 'api',
+        # 'USER': 'postgres',
+        # 'PASSWORD': 'vinay@2003',
+        # 'HOST': 'localhost',    
+        # 'PORT': '5435',
+    
 
 
 # Password validation
@@ -123,13 +133,39 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
-
-CHANNEL_LAYERS = {
+CACHES = {
     "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": os.getenv("REDIS_URL", "redis://127.0.0.1:6379/1"),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+    }
+}
+import redis
+
+# r = redis.Redis(
+#     host='redis-18638.c8.us-east-1-4.ec2.redns.redis-cloud.com',
+#     port=18638,
+#     decode_responses=True,
+#     username="default",
+#     password="*******",
+# )
+CHANNEL_LAYERS = {
+    # "default": {
+    #     "BACKEND": "channels_redis.core.RedisChannelLayer",
+    #     "CONFIG": {
+    #         "hosts": [("127.0.0.1", 6379)],
+    #     },
+    # },
+
+    "default": {
+       
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [("127.0.0.1", 6379)],
+            "hosts": [
+               os.getenv("redis")
+            ],
         },
     },
 }

@@ -2,8 +2,13 @@ from django.shortcuts import render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .serializer import Message_serializer,ChatRoom_serializer,User_serializer
-from chat.models import Message,ChatRoom,User
-# Create your views here.
+from chat.models import Message,ChatRoom,User_base as User
+
+from openai import OpenAI
+from dotenv import load_dotenv
+load_dotenv()
+import os 
+
 @api_view(['GET', 'POST','DELETE'])
 def get_message(request):
     if request.method == "GET":
@@ -55,3 +60,25 @@ def add_user(request):
         user = User.objects.get(id=request.data["id"])
         user.delete()
         return Response({"message":"User Deleted"})
+
+@api_view(['POST'])
+def compexlity_analysis(request):
+    if request.method == "POST":
+        client = OpenAI(
+        api_key = os.getenv("OPENAI_API_KEY")
+        )
+        data = request.data["code"]
+        completion = client.chat.completions.create(
+        model="gpt-4o-mini",
+        store=True,
+        messages=[
+            {"role": "user", "content":data + "need bigo time and space comp .dont include /// in your response message and also just the coplexity no extra message first time then space with a space"}
+        ]
+        )
+
+        message_response=completion.choices[0].message.content
+        
+        return Response({"message":{
+            "time complexity":message_response.split()[0],
+            "space complexity":message_response.split()[1]
+        }})
