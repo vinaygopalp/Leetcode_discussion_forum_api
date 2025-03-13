@@ -26,4 +26,5 @@ urlpatterns = [
     path('api-auth/', include('rest_framework.urls')),
     path('message_api/', include('message_api.urls')),
     path('auth/', include('authentications.urls')),
+     
 ]

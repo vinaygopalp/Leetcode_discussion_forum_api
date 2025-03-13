@@ -20,4 +20,7 @@ class Message_serializer(serializers.ModelSerializer):
         fields = '__all__'
         depth = 1
  
- 
+class Contest_serializer(serializers.ModelSerializer):
+    class Meta:
+        model = contest_template
+        fields = '__all__'

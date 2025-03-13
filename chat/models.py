@@ -12,3 +12,14 @@ class Message(models.Model):
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
     user_name = models.ForeignKey(User_base,on_delete=models.CASCADE, related_name="messages")
+
+class contest_template(models.Model):
+    id = models.AutoField(primary_key=True)
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    start_date = models.DateField(default="2021-01-01")
+    end_date = models.DateField(default="9999-12-31")
+    start_time = models.TimeField(default="00:00:00")
+    end_time = models.TimeField(default="23:59:59")
+
+    problems_id = models.CharField( max_length=50,default="-1")
