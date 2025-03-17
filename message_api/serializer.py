@@ -24,3 +24,19 @@ class Contest_serializer(serializers.ModelSerializer):
     class Meta:
         model = contest_template
         fields = '__all__'
+
+class template_contest_ser(serializers.Serializer):
+   
+    title = serializers.CharField(max_length=255)
+    description = serializers.CharField()
+    tags=serializers.ListField()
+    prize=serializers.ListField()
+
+
+class admin_contest_Ser(serializers.Serializer):
+    title = serializers.CharField(max_length=255)
+    start_date = serializers.DateField()
+    end_date = serializers.DateField()
+    start_time = serializers.TimeField()
+    end_time = serializers.TimeField()
+    problems_id = serializers.ListField()

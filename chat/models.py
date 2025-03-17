@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.postgres.fields import ArrayField
 class User_base(models.Model):
     user_name = models.CharField(max_length=255, unique=True)
     role=models.CharField(max_length=255,default="staff")
@@ -21,5 +22,6 @@ class contest_template(models.Model):
     end_date = models.DateField(default="9999-12-31")
     start_time = models.TimeField(default="00:00:00")
     end_time = models.TimeField(default="23:59:59")
-
-    problems_id = models.CharField( max_length=50,default="-1")
+    problems_id = ArrayField(models.IntegerField(), default=list, blank=True)
+    tags = ArrayField(models.CharField(), default=list, blank=True)
+     

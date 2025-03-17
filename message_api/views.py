@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .serializer import Message_serializer,ChatRoom_serializer,User_serializer,Contest_serializer
+from .serializer import Message_serializer,ChatRoom_serializer,User_serializer,Contest_serializer,template_contest_ser,admin_contest_Ser
 from chat.models import Message,ChatRoom,User_base as User
 from django.shortcuts import redirect
 import json
@@ -11,8 +11,14 @@ load_dotenv()
 import os 
 import sys
 import pika
-
-template_dict = {"demo_title": "demo_description"}
+from datetime import date, time, datetime
+import requests
+import threading
+import asyncio
+ 
+ 
+template_list = []
+sorted_list = []
 @api_view(['GET', 'POST','DELETE'])
 def get_message(request):
     if request.method == "GET":
@@ -87,102 +93,188 @@ def compexlity_analysis(request):
             "space complexity":message_response.split()[1]
         }})
 
-@api_view(['GET','POST'])
-def template_publish(request): 
-    data = request.data['message']
-    params = pika.URLParameters(os.getenv("rabbit_mq"))
-    connection = pika.BlockingConnection(params)
-    channel = connection.channel()
-    # channel.queue_declare(queue='contest_template')
-    channel.basic_publish(exchange='',
-                      routing_key='contest_template',
-                      body=data)
-    print(" [x] Sent {}".format(data))
-    connection.close()
-    return Response({"message":"RabbitMQ"})
-
-@api_view(['GET'])
-def template_consumer(request):
-    params = pika.URLParameters(os.getenv("rabbit_mq"))
-    connection = pika.BlockingConnection(params)
-    channel = connection.channel()
-    # channel.queue_declare(queue='contest_template')
-    def callback(ch, method, properties, body):
-        # if body:
-        #     conn = Contest_serializer(data=json.loads(body))
-        #     if conn.is_valid():
-        #         conn.save()
-        #         print(f"pushed")
-        #     else:
-        #         print(conn.errors)
-        print(f" [x] Received {body}")
-
-    channel.basic_consume(queue='contest_template', on_message_callback=callback, auto_ack=False)
-    print(' [*] Waiting for messages. To exit press CTRL+C')
-    channel.start_consuming()
-     
-    try:
-        channel.start_consuming()
-    except KeyboardInterrupt:
-        print("\n [!] Stopping consumer...")
-        connection.close()   
-        sys.exit(0)   
  
 
+actual_start={}
+@api_view(['POST','GET'])
+def contest_start(request):
+    
+    if request.method == "POST" :
+        global actual_start
+        actual_start = {}
+        actual_start = request.data
+        print(actual_start)
+
+        data = request.data
+        return Response(data)
+    if request.method == "GET":
+        return Response(actual_start) 
 
 
+ 
+contests_to_start = []
 
+async def check_contests():
+    global template_list
+    global sorted_list
+    """Background task to check if any contest should start."""
+    while True:
+        current_date = datetime.now().date()
+        current_time = datetime.now().time().replace(microsecond=0)
+        print(f"Checking contests at {current_date} {current_time}")
+        
+        for contest in contests_to_start[:]: 
+            if isinstance(contest, list):  
+                contest = contest[0]   
+            start_date = contest["start_date"]
+            start_time = contest["start_time"]
+            print(start_date,start_time)
+            if start_date <= str(current_date) and start_time <= str(current_time):
+                print("contest has started")
+                template_list = [c for c in template_list if c["title"] != contest["title"]]
 
+                sorted_list = [c for c in sorted_list if c["title"] != contest["title"]]
+                print("removed",template_list)
+                print("removed",sorted_list)
+                 
+                url = "http://127.0.0.1:8000/message_api/contest_start/"
+                response = requests.post(url, json=contests_to_start[0])
 
+                if response.status_code == 200:
+                    pass
+                else:
+                    print(f"⚠️ Failed to send contest '{contest['title']}'. Status: {response.status_code}")
 
-@api_view(['GET','POST'])
-def sorted_publish(request): 
-    data = request.data
-    data = json.dumps(data)
-    params = pika.URLParameters(os.getenv("rabbit_mq"))
-    connection = pika.BlockingConnection(params)
-    channel = connection.channel()
-    # channel.queue_declare(queue='contest_template')
-    channel.basic_publish(exchange='',
-                      routing_key='testing_streams',
-                      body=data)
-    print(" [x] Sent {}".format(data))
-    connection.close()
-    return Response({"message":"RabbitMQ"})
+                
+                contests_to_start.remove(contest)
+        print(contests_to_start)
+        await asyncio.sleep(120)  
 
 @api_view(['GET'])
 def sorted_consumer(request):
+   
     params = pika.URLParameters(os.getenv("rabbit_mq"))
     connection = pika.BlockingConnection(params)
     channel = connection.channel()
-    # channel.queue_declare(queue='contest_template')
 
     def callback(ch, method, properties, body):
-        print(f" [x] Received {body}")
-        body = json.loads(body)
-        body["description"] = template_dict[body["title"]]
+       
+        contest = json.loads(body.decode())  
+        if isinstance(contest, list):  
+            contest = contest[0]   
+        contests_to_start.append(contest)  
+        print(f"Contest '{contest['title']}' scheduled for {contest['start_date']} {contest['start_time']}")
+
+    channel.basic_consume(queue='contest_sorted', on_message_callback=callback, auto_ack=True)
+    
+    print(' [*] sorted Waiting for messages. To exit press CTRL+C')
+    
+   
+    consumer_thread = threading.Thread(target=channel.start_consuming, daemon=True)
+    consumer_thread.start()
+
+     
+    asyncio.run(check_contests())
+    print("Consumer started and checking contests asynchronously")
+    return Response({"message": "Consumer started and checking contests asynchronously"})
+
+
+def convert_dates(obj):
+   
+    if isinstance(obj, (datetime, date, time)):
+        return obj.isoformat()
+    raise TypeError(f"Type {type(obj)} not serializable")
+
+
+
+
+
+@api_view(['GET','POST'])
+def temp_publish(request): 
+    data = admin_contest_Ser(data=request.data)
+    if data.is_valid():
+        data = data.validated_data
+        for i in template_list:
+            
+            if i["title"]==data["title"]:
+                data["description"] = i["description"]
+                data["tags"] = i["tags"]
+                data["prize"] = i["prize"]
+                break
+        else:
+                return Response({"error":"Template not found"})
+        params = pika.URLParameters(os.getenv("rabbit_mq"))
+        connection = pika.BlockingConnection(params)
+        channel = connection.channel()
+        json_data = json.dumps(data, default=convert_dates).encode('utf-8')
         
-        print(body)
-        conn = Contest_serializer(data=body)
+        channel.basic_publish(exchange='',
+                        routing_key='contest_template',
+                        body=json_data )
+        conn = Contest_serializer(data=data)
+
         if conn.is_valid():
             conn.save()
-            print(f"pushed")
+            connection.close()
+            return Response({"message":"pushed to queue and db"})
+            
         else:
-            print(conn.errors)
-        
+            connection.close()
+            return Response({"error":conn.errors})
+             
 
-    channel.basic_consume(queue='testing_streams', on_message_callback=callback, auto_ack=True)
-    print(' [*] Waiting for messages. To exit press CTRL+C')
-    channel.start_consuming()
+
+    else:
+         
+        return Response({"error":data.errors})
+    
+    
+   
+
+sorted_list = []
+
+@api_view(['GET'])
+def temp_consumer(request):
+    params = pika.URLParameters(os.getenv("rabbit_mq"))
+    connection = pika.BlockingConnection(params)
+    channel = connection.channel()
+
+    def callback(ch, method, properties, body):
+        global sorted_list   
+        try:
+            data = json.loads(body.decode())   
+            if isinstance(data, dict):
+                data = [data]  
+
+            if not isinstance(data, list):
+                print(" [!] Received non-list data. Skipping...")
+                return
+
+            
+            sorted_list.extend(data)
+            sorted_list.sort(key=lambda x: (x['start_date'], x['start_time']))
+            channel.basic_publish(
+                exchange='',
+                routing_key='contest_sorted',
+                body=json.dumps(sorted_list, default=str).encode('utf-8')
+            )
+
+            print(f" [x] Processed & Published: {sorted_list}")
+
+        except Exception as e:
+            print(f" [!] Error processing message: {e}")
+
      
+    channel.basic_consume(queue='contest_template', on_message_callback=callback, auto_ack=True)
+
+    print(' [*] Waiting for messages. To exit press CTRL+C')
+
     try:
         channel.start_consuming()
     except KeyboardInterrupt:
         print("\n [!] Stopping consumer...")
-        connection.close()   
-        sys.exit(0)   
- 
-
+        connection.close()
+        sys.exit(0)
 
 @api_view(['GET','POST'])
 def ack(request):
@@ -207,13 +299,24 @@ def ack(request):
 @api_view(['GET','POST','DELETE'])
 def contest_template(request):
     if request.method=="GET":
-        global template_dict
-        return Response({"contest_template":json.dumps(template_dict)})
+        global template_list
+        print(template_list)
+        return Response(template_list)
 
     if request.method=="POST":
-        template_dict = request.data
-        template_dict['title'] = request.data.get("description")
-        return Response({"message":"contest_template added"})
+        serializer = template_contest_ser(data=request.data)
+        if serializer.is_valid():
+            validated_data = serializer.validated_data 
+            temp={}
+            temp["title"] = validated_data["title"]
+            temp["description"] = validated_data["description"]
+            temp["tags"] = validated_data["tags"]
+            temp["prize"] = validated_data["prize"]
+            template_list.append(serializer.data)
+            return Response({"message":"added to template"})
+        else:
+            return Response({"error":serializer.errors})
+    
 
 
     if request.method == "DELETE":
