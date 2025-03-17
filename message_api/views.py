@@ -148,7 +148,7 @@ async def check_contests():
                 
                 contests_to_start.remove(contest)
         print(contests_to_start)
-        await asyncio.sleep(120)  
+        await asyncio.sleep(1)  
 
 @api_view(['GET'])
 def sorted_consumer(request):
