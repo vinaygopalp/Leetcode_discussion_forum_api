@@ -151,6 +151,7 @@ import redis
 #     username="default",
 #     password="*******",
 # )
+ 
 CHANNEL_LAYERS = {
     # "default": {
     #     "BACKEND": "channels_redis.core.RedisChannelLayer",
@@ -158,13 +159,13 @@ CHANNEL_LAYERS = {
     #         "hosts": [("127.0.0.1", 6379)],
     #     },
     # },
-
+ 
     "default": {
        
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
             "hosts": [
-               os.getenv("redis")
+                    str(os.getenv("redis"))
             ],
         },
     },
