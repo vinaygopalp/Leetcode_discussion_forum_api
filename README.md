@@ -1,13 +1,14 @@
-# Leetcode CLone
+```markdown
+# Leetcode Clone
 
-just tried to clone Leetcode functionalties 
+Just tried to clone some Leetcode functionalities.
 ---
 
 ## Features
 
-- **Feature 1:** WebSocket connection.
-- **Feature 2:** REST API for data fetching and management.
-- **Feature 3:** JWT-based authentication with endpoints for login, registration, and token refresh.
+- **Feature 1:** WebSocket-based real-time chat.
+- **Feature 2:** REST API for managing contests, messages, rooms, and users.
+- **Feature 3:** JWT-based authentication (login, register, refresh token).
 
 ---
 
@@ -17,150 +18,280 @@ Ensure you have the following installed:
 
 - **Python 3.x**
 - **Docker** (for containerized deployment)
-- **pip** (ensure it's updated: `pip install --upgrade pip`)
+- **pip** (upgrade it: `pip install --upgrade pip`)
 
 ---
 
 ## Endpoints
 
 ### **WebSocket Connection**
-- **Endpoint:** `ws://127.0.0.1:8000/chat/<chatroom_name>/`  
-  - **Purpose:** Establish a WebSocket connection for live chat.
-  - **Sample JSON Message:**
-    ```json
-    {
-        "message": "Hello, World!",
-        "sender": "user_name"
-    }
-    ```
+- **URL:** `ws://127.0.0.1:8000/ws/chat/<problem_id>/`
+- **Purpose:** Real-time chat based on problem id.
+
+**Sample WebSocket Message:**
+```json
+{
+  "message": "Hello World!",
+  "sender": "user123"
+}
+```
 
 ---
 
 ### **REST APIs**
 
+#### **Contest Management**
+
+- **POST** `/message_api/contest_template/`  
+  Create a new contest template.
+
+**Sample Request:**
+```json
+{
+  "title": "Weekly Contest 1",
+  "description": "First contest description"
+}
+```
+
+- **POST** `/message_api/schedule_contest/`  
+  Schedule a contest.
+
+**Sample Request:**
+```json
+{
+  "title": "Weekly Contest 1",
+  "start_time": "2025-04-06T10:00:00Z",
+  "end_time": "2025-04-06T12:00:00Z"
+}
+```
+
+- **POST** `/message_api/contest_start/`  
+  Start a contest immediately.
+
+**Sample Request:**
+```json
+{
+  "title": "Weekly Contest 1"
+}
+```
+
+- **GET** `/message_api/all_templates/`  
+  Fetch all contest templates.
+
+**Sample Response:**
+```json
+[
+  {
+    "id": 1,
+    "title": "Weekly Contest 1",
+    "description": "First contest description"
+  }
+]
+```
+
+- **GET** `/message_api/all_schedules/`  
+  Fetch all scheduled contests.
+
+**Sample Response:**
+```json
+[
+  {
+    "id": 1,
+    "title": "Weekly Contest 1",
+    "start_time": "2025-04-06T10:00:00Z",
+    "end_time": "2025-04-06T12:00:00Z"
+  }
+]
+```
+
+- **DELETE** `/message_api/delete_all_contests/`  
+  Delete all scheduled contests.
+
+- **DELETE** `/message_api/delete_all_templates/`  
+  Delete all contest templates.
+
+---
+
 #### **Room Management**
-- **Endpoint:** `http://127.0.0.1:8000/message_api/room/`  
-  - **Methods:** GET, PUT, DELETE
-  - **Purpose:** Manage chat rooms.
-  - **Sample JSON Response:**
-    ```json
-    [
-        {
-            "id": 1,
-            "created_at": "2024-11-30T18:10:33.187438Z",
-            "room": "room_name"
-        }
-    ]
-    ```
+
+- **POST** `/message_api/room/`  
+  Create a chat room.
+
+**Sample Request:**
+```json
+{
+  "room": "problem_123"
+}
+```
+
+- **GET** `/message_api/room/`  
+  Fetch all rooms.
+
+**Sample Response:**
+```json
+[
+  {
+    "id": 1,
+    "room": "problem_123",
+    "created_at": "2025-04-06T09:00:00Z"
+  }
+]
+```
+
+- **DELETE** `/message_api/room/`  
+  Delete a chat room.
 
 ---
 
 #### **User Management**
-- **Endpoint:** `http://127.0.0.1:8000/message_api/user/`  
-  - **Methods:** GET, POST, DELETE
-  - **Purpose:** Manage users.
-  - **Sample JSON Response:**
-    ```json
-    [
-        {
-            "id": 1,
-            "user_name": "vinay"
-        }
-    ]
-    ```
+
+- **POST** `/message_api/user/`  
+  Add a user.
+
+**Sample Request:**
+```json
+{
+  "user_name": "vinay"
+}
+```
+
+- **GET** `/message_api/user/`  
+  Fetch users.
+
+**Sample Response:**
+```json
+[
+  {
+    "id": 1,
+    "user_name": "vinay"
+  }
+]
+```
+
+- **DELETE** `/message_api/user/`  
+  Delete a user.
 
 ---
 
 #### **Message Management**
-- **Endpoint:** `http://127.0.0.1:8000/message_api/message/`  
-  - **Methods:** GET, POST, DELETE
-  - **Purpose:** Manage chat messages.
-  - **Sample JSON Response:**
-    ```json
-    [
-        {
-            "id": 1,
-            "user_name": {
-                "id": 1,
-                "user_name": "vinay"
-            },
-            "room": {
-                "id": 4,
-                "created_at": "2024-11-30T18:10:55.289960Z",
-                "room": "problem2"
-            },
-            "content": "Hello!",
-            "timestamp": "2024-11-30T18:11:25.156366Z"
-        }
-    ]
-    ```
+
+- **GET** `/message_api/message/`  
+  Fetch messages from a room.
+
+**Sample Response:**
+```json
+[
+  {
+    "id": 1,
+    "user_name": {
+      "id": 1,
+      "user_name": "vinay"
+    },
+    "room": {
+      "id": 2,
+      "room": "problem_123"
+    },
+    "content": "Hello!",
+    "timestamp": "2025-04-06T09:30:00Z"
+  }
+]
+```
 
 ---
 
-#### **Authentication**
+#### **Code Complexity Analysis**
 
-##### **Login**
-- **Endpoint:** `http://127.0.0.1:8000/auth/login/`  
-  - **Method:** POST
-  - **Purpose:** Authenticate a user and retrieve access/refresh tokens.
-  - **Sample Request:**
-    ```json
-    {
-        "username": "fuckkk",
-        "password": "123",
-        "roles": "admin,user"
-    }
-    ```
-  - **Sample Response:**
-    ```json
-    {
-        "refresh": "<refresh_token>",
-        "access": "<access_token>"
-    }
-    ```
+- **POST** `/message_api/comp/`  
+  Analyze code complexity.
 
-##### **Token Pair**
-- **Endpoint:** `http://127.0.0.1:8000/auth/api/token/`  
-  - **Method:** POST
-  - **Purpose:** Obtain a new access and refresh token pair.
-  - **Sample Request:**
-    ```json
-    {
-        "username": "vinay",
-        "password": "123",
-        "roles": "admin,user"
-    }
-    ```
+**Sample Request:**
+```json
+{
+  "code": "def add(a, b): return a + b"
+}
+```
 
-##### **Token Refresh**
-- **Endpoint:** `http://127.0.0.1:8000/auth/api/token/refresh/`  
-  - **Method:** POST
-  - **Purpose:** Refresh the access token using the refresh token.
-  - **Sample Request:**
-    ```json
-    {
-        "refresh": "<refresh_token>"
-    }
-    ```
+**Sample Response:**
+```json
+{
+  "complexity": "O(1)"
+}
+```
 
-##### **Register**
-- **Endpoint:** `http://127.0.0.1:8000/auth/register/`  
-  - **Method:** POST
-  - **Purpose:** Register a new user.
-  - **Sample Request:**
-    ```json
-    {
-        "username": "fuckkk",
-        "password": "123",
-        "roles": "admin,user"
-    }
-    ```
-  - **Sample Response:**
-    ```json
-    {
-        "status": "User created"
-    }
-    ```
+---
+
+### **Authentication**
+
+#### **Login**
+- **POST** `/auth/login/`  
+  Login and get JWT tokens.
+
+**Sample Request:**
+```json
+{
+  "username": "vinay",
+  "password": "123",
+  "roles": "admin,user"
+}
+```
+
+**Sample Response:**
+```json
+{
+  "refresh": "<refresh_token>",
+  "access": "<access_token>"
+}
+```
+
+---
+
+#### **Register**
+- **POST** `/auth/register/`  
+  Register a new user.
+
+**Sample Request:**
+```json
+{
+  "username": "vinay",
+  "password": "123",
+  "roles": "admin,user"
+}
+```
+
+**Sample Response:**
+```json
+{
+  "status": "User created"
+}
+```
+
+---
+
+#### **Token Obtain**
+- **POST** `/auth/api/token/`  
+  Obtain a new token.
+
+**Sample Request:**
+```json
+{
+  "username": "vinay",
+  "password": "123",
+  "roles": "admin,user"
+}
+```
+
+---
+
+#### **Token Refresh**
+- **POST** `/auth/api/token/refresh/`  
+  Refresh access token.
+
+**Sample Request:**
+```json
+{
+  "refresh": "<refresh_token>"
+}
+```
 
 ---
 
@@ -170,5 +301,48 @@ Ensure you have the following installed:
 
 #### Step 1: Clone the Repository
 ```bash
-git clone https://github.com/your-username/your-repo.git
-cd your-repo
+git clone https://github.com/vinaygopalp/Leetcode_discussion_forum_api.git
+ 
+```
+
+#### Step 2: Build and Run with Docker
+```bash
+docker-compose up --build
+```
+
+---
+
+### **Option 2: Manual Setup**
+
+#### Step 1: Create Virtual Environment
+```bash
+python -m venv venv
+source venv/bin/activate  # For Linux/Mac
+venv\Scripts\activate     # For Windows
+```
+
+#### Step 2: Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+#### Step 3: Run Migrations
+```bash
+python manage.py migrate
+```
+
+#### Step 4: Start Server
+```bash
+python manage.py runserver
+```
+
+---
+
+## Notes
+
+- Ensure RabbitMQ and Redis are running.
+- WebSocket endpoints are secured with JWT tokens.
+- Contest templates are managed using a Redis sorted set.
+
+---
+```
