@@ -24,9 +24,8 @@ SECRET_KEY = 'django-insecure-zu@#)^$6^=8$lf52)ly)*5#!fi5niu!s#())fb=s=hrvjkw_c&
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = ['leetcode-contest.onrender.com']
+# ALLOWED_HOSTS=[]
 REST_FRAMEWORK = {
      
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -91,18 +90,18 @@ WSGI_APPLICATION = 'Leetcode.wsgi.application'
 
  
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.sqlite3',
+    #     'NAME': BASE_DIR / 'db.sqlite3',
+    #}
+    'default':{
+        'ENGINE': os.getenv('ENGINE'),
+        'NAME': os.getenv('NAME'),
+        'USER': os.getenv('USER'),
+        'PASSWORD': os.getenv('PASSWORD'),
+        'HOST': os.getenv('discussion_HOST'),       
+        'PORT': os.getenv('db_PORT'),
     }
-    # 'default':{
-    #     'ENGINE': 'django.db.backends.postgresql',
-    #     'NAME': 'api',
-    #     'USER': 'postgres',
-    #     'PASSWORD': 'vinay@2003',
-    #     'HOST': 'localhost',    
-    #     'PORT': '5435',
-    # }
 }
 
 
