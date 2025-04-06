@@ -1,4 +1,4 @@
-```markdown
+
 # Leetcode Clone
 
 Just tried to clone some Leetcode functionalities.
