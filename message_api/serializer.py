@@ -6,7 +6,7 @@ from chat.models import *
 # Serializers define the API representation.
 class User_serializer(serializers.ModelSerializer):
     class Meta:
-        model = User_base
+        model = Users
         fields = '__all__'
 class ChatRoom_serializer(serializers.ModelSerializer):
     class Meta:
@@ -20,10 +20,6 @@ class Message_serializer(serializers.ModelSerializer):
         fields = '__all__'
         depth = 1
  
-class Contest_serializer(serializers.ModelSerializer):
-    class Meta:
-        model = contest_template
-        fields = '__all__'
 
 class template_contest_ser(serializers.Serializer):
    

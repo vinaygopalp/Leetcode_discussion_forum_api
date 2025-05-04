@@ -28,8 +28,13 @@ SECRET_KEY = 'django-insecure-zu@#)^$6^=8$lf52)ly)*5#!fi5niu!s#())fb=s=hrvjkw_c&
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = ['localhost', '127.0.0.1',"leetcode-contest.onrender.com","go-lang-auth-service-latest.onrender.com"]
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://leetcode-contest.onrender.com",
+    "https://go-lang-auth-service-latest.onrender.com",
+]
 REST_FRAMEWORK = {
      
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -99,13 +104,23 @@ DATABASES = {
     #     'ENGINE': 'django.db.backends.sqlite3',
     #     'NAME': BASE_DIR / 'db.sqlite3',
     # }
-    'default':{
-        'ENGINE':'django.db.backends.postgresql',
+    
+        'default':{
+        # 'ENGINE': os.getenv('ENGINE'),
+        # 'NAME': os.getenv('NAME'),
+        # 'USER': os.getenv('USER'),
+        # 'PASSWORD': os.getenv('PASSWORD'),
+        # 'HOST': os.getenv('discussion_HOST'),       
+        # 'PORT': os.getenv('db_PORT'),
+
+        'ENGINE': os.getenv('ENGINE'),
         'NAME': os.getenv('NAME'),
-        'USER': os.getenv('USER'), 
-        'PASSWORD': 'Vinay@2003',
-        'HOST': os.getenv('HOST'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),       
+        'PORT': os.getenv('DB_PORT'),
     }
+   
 }
         # 'ENGINE': 'postgresql://postgres:[YOUR-PASSWORD]@db.emadhrxdakgsydwvtxpf.supabase.co:5432/postgres  ',
         # 'NAME': 'api',
@@ -142,6 +157,7 @@ CACHES = {
         },
     }
 }
+
 import redis
 
 # r = redis.Redis(

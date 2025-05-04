@@ -112,7 +112,7 @@
 #         }))
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
-from chat.models import Message, ChatRoom,User_base
+from chat.models import Message, ChatRoom,Users
  
 from channels.db import database_sync_to_async
 class ChatConsumer(AsyncWebsocketConsumer):
@@ -129,11 +129,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def my_database_operation(self, message, sender):
         try:
             room = ChatRoom.objects.get(room=self.room_name)
-            senderr = User_base.objects.get(user_name=sender)  # Fixed attribute
+            senderr = Users.objects.get(username=sender)
+            print(room,senderr)  # Fixed attribute
             Message.objects.create(content=message, room=room, user_name=senderr)
         except ChatRoom.DoesNotExist:
             return "Room does not exist"
-        except User.DoesNotExist:
+        except Users.DoesNotExist:
             return "User does not exist"
         return None
 

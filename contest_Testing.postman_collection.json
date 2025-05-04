@@ -7,180 +7,91 @@
 	},
 	"item": [
 		{
-			"name": "http://127.0.0.1:8000/message_api/rabbitmq/template_publish",
+			"name": "http://127.0.0.1:8000/message_api/contest_start/",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://leetcode-contest.onrender.com/message_api/contest_start/",
+					"protocol": "https",
+					"host": [
+						"leetcode-contest",
+						"onrender",
+						"com"
+					],
+					"path": [
+						"message_api",
+						"contest_start",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "http://127.0.0.1:8000/message_api/all_templates/",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/message_api/all_templates/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"message_api",
+						"all_templates",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "http://127.0.0.1:8000/message_api/all_schedules/",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/message_api/all_schedules/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"message_api",
+						"all_schedules",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "http://127.0.0.1:8000/message_api/delete_all_templates/",
 			"request": {
 				"auth": {
 					"type": "noauth"
 				},
 				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\r\n    \"message\":\"dfsfdsffd\"\r\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "http://127.0.0.1:8000/message_api/rabbitmq/template_publish",
-					"protocol": "http",
-					"host": [
-						"127",
-						"0",
-						"0",
-						"1"
-					],
-					"port": "8000",
-					"path": [
-						"message_api",
-						"rabbitmq",
-						"template_publish"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "http://127.0.0.1:8000/message_api/rabbitmq/template_consume",
-			"request": {
-				"auth": {
-					"type": "noauth"
-				},
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "http://127.0.0.1:8000/message_api/rabbitmq/sorted_consume",
-					"protocol": "http",
-					"host": [
-						"127",
-						"0",
-						"0",
-						"1"
-					],
-					"port": "8000",
-					"path": [
-						"message_api",
-						"rabbitmq",
-						"sorted_consume"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "http://127.0.0.1:8000/message_api/rabbitmq/sorted_publish",
-			"request": {
-				"auth": {
-					"type": "noauth"
-				},
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": " {\r\n        \"title\": \"LeetCode Weekly Contest8\",\r\n         \r\n        \"description\": \"Solve data structures and algorithms problems\",\r\n        \"tags\": [\"DSA\", \"competitive\"],\r\n        \"prize\": \"1000 USD\",\r\n        \"start_date\": \"2025-03-17\",\r\n        \"start_time\": \"01:02:00\",\r\n        \"end_date\": \"2025-03-19\",\r\n        \"end_time\": \"17:00:00\",\r\n        \"problems_id\": [201, 202, 203]\r\n    }\r\n    ",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "http://127.0.0.1:8000/message_api/rabbitmq/temp_publish",
-					"protocol": "http",
-					"host": [
-						"127",
-						"0",
-						"0",
-						"1"
-					],
-					"port": "8000",
-					"path": [
-						"message_api",
-						"rabbitmq",
-						"temp_publish"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "http://127.0.0.1:8000/message_api/rabbitmq/sorted_consume",
-			"protocolProfileBehavior": {
-				"disableBodyPruning": true
-			},
-			"request": {
-				"auth": {
-					"type": "noauth"
-				},
-				"method": "GET",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": " ",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "http://127.0.0.1:8000/message_api/rabbitmq/temp_consume",
-					"protocol": "http",
-					"host": [
-						"127",
-						"0",
-						"0",
-						"1"
-					],
-					"port": "8000",
-					"path": [
-						"message_api",
-						"rabbitmq",
-						"temp_consume"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "http://127.0.0.1:8000/message_api/rabbitmq/ack",
-			"request": {
-				"auth": {
-					"type": "noauth"
-				},
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "http://127.0.0.1:8000/message_api/rabbitmq/ack",
-					"protocol": "http",
-					"host": [
-						"127",
-						"0",
-						"0",
-						"1"
-					],
-					"port": "8000",
-					"path": [
-						"message_api",
-						"rabbitmq",
-						"ack"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "http://127.0.0.1:8000/message_api/contest_template",
-			"protocolProfileBehavior": {
-				"disableBodyPruning": true
-			},
-			"request": {
-				"auth": {
-					"type": "noauth"
-				},
-				"method": "GET",
 				"header": [],
 				"body": {
 					"mode": "raw",
@@ -192,7 +103,7 @@
 					}
 				},
 				"url": {
-					"raw": "http://127.0.0.1:8000/message_api/contest_template",
+					"raw": "http://127.0.0.1:8000/message_api/delete_all_templates/",
 					"protocol": "http",
 					"host": [
 						"127",
@@ -203,7 +114,35 @@
 					"port": "8000",
 					"path": [
 						"message_api",
-						"contest_template"
+						"delete_all_templates",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "http://127.0.0.1:8000/message_api/delete_all_contests/",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/message_api/delete_all_contests/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"message_api",
+						"delete_all_contests",
+						""
 					]
 				}
 			},
@@ -219,7 +158,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"title\": \"LeetCode Weekly Contest8\",\r\n    \"description\": \"Solve algorithmic problems.\",\r\n    \"tags\": [\"Django\", \"Python\",\"gand\"],\r\n    \"prize\": [\"400 USD\",\"200 usd\"]\r\n}\r\n",
+					"raw": "{\r\n    \"title\": \"Weekly Contest6\",\r\n    \"description\": \"A fun coding contest!\",\r\n    \"tags\": [\"coding\", \"algorithm\"],\r\n    \"prize\": \"1000 coins\"\r\n}\r\n",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -246,15 +185,24 @@
 			"response": []
 		},
 		{
-			"name": "http://127.0.0.1:8000/message_api/contest_start/",
+			"name": "http://127.0.0.1:8000/message_api/schedule_contest/",
 			"request": {
 				"auth": {
 					"type": "noauth"
 				},
-				"method": "GET",
+				"method": "POST",
 				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"title\": \"Weekly Contest6\",\r\n    \"start_date\": \"2025-05-03\",\r\n    \"start_time\": \"13:42:00\",\r\n    \"end_date\": \"2025-09-04\",\r\n    \"end_time\": \"13:45:00\",\r\n    \"problems_id\": [1,2,3]\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
 				"url": {
-					"raw": "http://127.0.0.1:8000/message_api/contest_start/",
+					"raw": "http://127.0.0.1:8000/message_api/schedule_contest/",
 					"protocol": "http",
 					"host": [
 						"127",
@@ -265,7 +213,7 @@
 					"port": "8000",
 					"path": [
 						"message_api",
-						"contest_start",
+						"schedule_contest",
 						""
 					]
 				}
