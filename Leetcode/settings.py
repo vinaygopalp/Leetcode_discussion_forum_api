@@ -28,13 +28,23 @@ SECRET_KEY = 'django-insecure-zu@#)^$6^=8$lf52)ly)*5#!fi5niu!s#())fb=s=hrvjkw_c&
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1',"leetcode-contest.onrender.com","go-lang-auth-service-latest.onrender.com"]
+ALLOWED_HOSTS = ['localhost', '127.0.0.1',"leetcode-contest.onrender.com","go-lang-auth-service-latest.onrender.com","codeverse-latest.onrender.com","codeverse-frontend-z1ao.onrender.com","codeverse-auth-svc.onrender.com"]
+
+from corsheaders.defaults import default_headers
+
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://leetcode-contest.onrender.com",
-    "https://go-lang-auth-service-latest.onrender.com",
+    "https://codeverse-frontend-z1ao.onrender.com", "http://localhost:3000",
+    "http://127.0.0.1:3000","https://leetcode-contest.onrender.com","https://go-lang-auth-service-latest.onrender.com","https://codeverse-latest.onrender.com","https://codeverse-frontend-z1ao.onrender.com","https://codeverse-auth-svc.onrender.com"
 ]
+
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "access-control-allow-origin",
+]
+
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = True
+
 REST_FRAMEWORK = {
      
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -46,6 +56,7 @@ REST_FRAMEWORK = {
 # Application definition
 
 INSTALLED_APPS = [
+     'corsheaders',
     'rest_framework_simplejwt',
     'rest_framework',
     'message_api', 
@@ -62,6 +73,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware', 
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

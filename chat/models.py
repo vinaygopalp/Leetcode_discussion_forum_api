@@ -57,3 +57,19 @@ class ScheduledContest(models.Model):
 
  
 
+class Contest_particpants(models.Model):  
+    user = models.ForeignKey(Users, on_delete=models.CASCADE, related_name="contest_participant")
+    contest = models.ForeignKey(ScheduledContest, on_delete=models.CASCADE , related_name="contest")
+    entered_time = models.DateTimeField(auto_now_add=True)
+    class Meta:
+        unique_together = ('user_id', 'contest_id')
+    def __str__(self):
+        return f"{self.user.username} - {self.contest.contest_id}"
+    
+class contest_leaderboard(models.Model):
+    contest_participant = models.ForeignKey(Contest_particpants, on_delete=models.CASCADE, related_name="contest_participant")
+    total_solved_problem = models.JSONField()
+    reward_points = models.BigIntegerField()
+    updated_time = models.DateTimeField(auto_now=True)
+    def __str__(self):
+        return f"{self.contest_participant.user.username} in {self.contest_participant.contest.contest_id}"

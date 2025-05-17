@@ -22,5 +22,7 @@ urlpatterns = [
     path("all_schedules/",views.view_all_scheduled_contests, name="all_sch"),
      path('delete_all_contests/', views.delete_all_contests,name="delete_all_contests"),
     path('delete_all_templates/', views.delete_all_templates,name="delete_all_templates"),
+    path('test/', views.test, name="test"),
+     
 # 
 ]

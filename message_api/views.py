@@ -16,6 +16,8 @@ import redis
 import time
 from datetime import datetime
 from dateutil import parser
+from zoneinfo import ZoneInfo  # Built-in in Python 3.9+
+INDIA_TZ = ZoneInfo("Asia/Kolkata")
 
 r = redis.Redis(
       host=os.getenv("contest_host"),
@@ -131,10 +133,21 @@ def create_template(template_id, title, description, tags, prize):
     }
     r.hset(TEMPLATE_KEY, template_id, json.dumps(template_data))
 
-
+@csrf_exempt
 def schedule_contest(contest_id, template_id, start_datetime, end_datetime, problems_id):
+    # Parse and convert to IST
     start_dt = parser.parse(start_datetime)
     end_dt = parser.parse(end_datetime)
+
+    if start_dt.tzinfo is None:
+        start_dt = start_dt.replace(tzinfo=ZoneInfo("Asia/Kolkata"))
+    else:
+        start_dt = start_dt.astimezone(ZoneInfo("Asia/Kolkata"))
+
+    if end_dt.tzinfo is None:
+        end_dt = end_dt.replace(tzinfo=ZoneInfo("Asia/Kolkata"))
+    else:
+        end_dt = end_dt.astimezone(ZoneInfo("Asia/Kolkata"))
 
     contest_data = {
         "contest_id": contest_id,
@@ -146,14 +159,16 @@ def schedule_contest(contest_id, template_id, start_datetime, end_datetime, prob
 
     r.hset(f"contest:{contest_id}", mapping=contest_data)
     r.zadd(SCHEDULE_KEY, {contest_id: start_dt.timestamp()})
+
     ScheduledContest.objects.create(
         contest_id=contest_id,
         template_id=template_id,
         start_datetime=start_dt,
         end_datetime=end_dt,
-        problems_id=problems_id   
+        problems_id=problems_id
     )
-    print(f"Contest {contest_id} scheduled successfully at timestamp {start_dt.timestamp()}!")
+
+    print(f"[SCHEDULED] Contest: {contest_id} | Start (IST): {start_dt} | End (IST): {end_dt}")
 
  
 @csrf_exempt
@@ -178,7 +193,6 @@ def contest_template(request):
         return JsonResponse({"error": "Invalid method"}, status=405)
 
  
-
 @csrf_exempt
 def schedule_contest_view(request):
     if request.method == "POST":
@@ -195,8 +209,6 @@ def schedule_contest_view(request):
             if not (start_date and start_time and end_date and end_time):
                 return JsonResponse({"error": "All date and time fields are required."}, status=400)
 
-            # Validate problem IDs
-            # Convert all IDs to integers for comparison, if needed
             problems_id_int = [int(pid) for pid in problems_id]
             existing_ids = set(Problem.objects.filter(id__in=problems_id_int).values_list('id', flat=True))
             invalid_ids = [pid for pid in problems_id_int if pid not in existing_ids]
@@ -209,55 +221,45 @@ def schedule_contest_view(request):
             start_datetime = f"{start_date} {start_time}"
             end_datetime = f"{end_date} {end_time}"
 
+            print(f"[RECEIVED] IST datetime strings -> Start: {start_datetime}, End: {end_datetime}")
+
             schedule_contest(contest_id, template_id, start_datetime, end_datetime, problems_id_int)
 
             return JsonResponse({"message": "Contest scheduled successfully"})
+
         except Exception as e:
+            print(f"[ERROR] while scheduling: {str(e)}")
             return JsonResponse({"error": str(e)}, status=400)
-    else:
-        return JsonResponse({"error": "Invalid method"}, status=405)
-    
+
+    return JsonResponse({"error": "Invalid method"}, status=405)
+
 @csrf_exempt
 def contest_start(request):
     if request.method == "GET":
         try:
             current_timestamp = int(time.time())  
-            print(f"Current UTC time: {current_timestamp}")
-
+            
             scheduled_contests = r.zrange(SCHEDULE_KEY, 0, -1)  
-            print(f"Scheduled Contest IDs: {scheduled_contests}")  
-
+            
             contests_data = []
             for contest_id in scheduled_contests:
                 contest_key = f"contest:{contest_id}"
                 contest_data = r.hgetall(contest_key)
-                print(f"Contest {contest_id} data: {contest_data}") 
                 if contest_data:
-                    # Decode bytes if needed
-                    contest_data = {k.decode('utf-8') if isinstance(k, bytes) else k: 
-                                    v.decode('utf-8') if isinstance(v, bytes) else v 
-                                    for k, v in contest_data.items()}
+                    # Decode bytes to strings
+                    contest_data = {
+                        k.decode('utf-8') if isinstance(k, bytes) else k: 
+                        v.decode('utf-8') if isinstance(v, bytes) else v 
+                        for k, v in contest_data.items()
+                    }
 
-                    # Parse datetimes
                     start_datetime_str = contest_data.get("start_datetime")
                     end_datetime_str = contest_data.get("end_datetime")
                     problems_id_raw = contest_data.get("problems_id")
 
-                    # Default problems_id to empty
-                    contest_data["problems_id"] = []
-
-                    # Parse times
-                    if start_datetime_str:
-                        start_dt = datetime.strptime(start_datetime_str, "%Y-%m-%dT%H:%M:%S")
-                        start_ts = int(start_dt.timestamp())
-                    else:
-                        start_ts = 0
-
-                    if end_datetime_str:
-                        end_dt = datetime.strptime(end_datetime_str, "%Y-%m-%dT%H:%M:%S")
-                        end_ts = int(end_dt.timestamp())
-                    else:
-                        end_ts = 0
+                    # Parse timestamps
+                    start_ts = int(datetime.fromisoformat(start_datetime_str).astimezone(INDIA_TZ).timestamp())
+                    end_ts = int(datetime.fromisoformat(end_datetime_str).astimezone(INDIA_TZ).timestamp()) if end_datetime_str else 0
 
                     # If contest ended, delete it
                     if current_timestamp >= end_ts:
@@ -269,7 +271,7 @@ def contest_start(request):
                             r.hdel(TEMPLATE_KEY, template_id)
                         continue  # Don't include in response
 
-                    # If contest started, include problems_id
+                    # Determine if contest has started
                     if current_timestamp >= start_ts:
                         if problems_id_raw:
                             try:
@@ -278,7 +280,8 @@ def contest_start(request):
                                 contest_data["problems_id"] = []
                         else:
                             contest_data["problems_id"] = []
-                    # If contest not started, problems_id remains empty
+                    else:
+                        contest_data["problems_id"] = []
 
                     contests_data.append(contest_data)
 
@@ -287,8 +290,7 @@ def contest_start(request):
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
 
-    else:
-        return JsonResponse({"error": "Invalid method"}, status=405)
+    return JsonResponse({"error": "Invalid method"}, status=405)
 
 @csrf_exempt
 def list_templates(request):
@@ -362,3 +364,7 @@ def view_all_scheduled_contests(request):
             return JsonResponse({"error": str(e)}, status=400)
     else:
         return JsonResponse({"error": "Invalid method"}, status=405)
+
+@csrf_exempt
+def test(request):
+    return JsonResponse({"message":"success"})
