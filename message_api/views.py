@@ -156,6 +156,7 @@ def schedule_contest(contest_id, template_id, start_datetime, end_datetime, prob
         "end_datetime": end_dt.isoformat(),
         "problems_id": json.dumps(problems_id)
     }
+    
 
     r.hset(f"contest:{contest_id}", mapping=contest_data)
     r.zadd(SCHEDULE_KEY, {contest_id: start_dt.timestamp()})
