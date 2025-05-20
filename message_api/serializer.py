@@ -36,3 +36,59 @@ class admin_contest_Ser(serializers.Serializer):
     start_time = serializers.TimeField()
     end_time = serializers.TimeField()
     problems_id = serializers.ListField()
+
+
+
+import time
+from datetime import timezone
+
+# Helper to convert datetime to UNIX timestamp
+def to_unix(dt):
+    if dt:
+        return int(time.mktime(dt.timetuple()))
+    return None
+
+class ProblemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Problem
+        fields = '__all__'
+
+
+class ScheduledContestSerializer(serializers.ModelSerializer):
+    start_unix = serializers.SerializerMethodField()
+    end_unix = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ScheduledContest
+        fields = ['contest_id', 'template_id', 'start_datetime', 'end_datetime', 'created_at', 'problems_id', 'start_unix', 'end_unix']
+
+    def get_start_unix(self, obj):
+        return to_unix(obj.start_datetime)
+
+    def get_end_unix(self, obj):
+        return to_unix(obj.end_datetime)
+
+
+class ContestParticipantSerializer(serializers.ModelSerializer):
+    user = User_serializer()
+    contest = ScheduledContestSerializer()
+    entered_unix = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Contest_Particpants
+        fields = ['user', 'contest', 'entered_time', 'active', 'entered_unix']
+
+    def get_entered_unix(self, obj):
+        return to_unix(obj.entered_time)
+
+
+class ContestLeaderboardSerializer(serializers.ModelSerializer):
+    contest_participant = ContestParticipantSerializer()
+    updated_unix = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Contest_Leaderboard
+        fields = ['contest_participant', 'total_solved_problem', 'reward_points', 'updated_time', 'updated_unix']
+
+    def get_updated_unix(self, obj):
+        return to_unix(obj.updated_time)

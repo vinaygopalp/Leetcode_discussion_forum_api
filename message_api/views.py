@@ -1,23 +1,24 @@
-from django.shortcuts import render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .serializer import Message_serializer,ChatRoom_serializer,User_serializer
-from chat.models import Message,ChatRoom, ScheduledContest,Users,Problem
+from .serializer import *
+from chat.models import Message,ChatRoom, ScheduledContest,Users,Problem, Contest_Particpants, Contest_Leaderboard
 from django.shortcuts import redirect
 import json
 from openai import OpenAI
 from dotenv import load_dotenv
-load_dotenv()
 import os 
-from datetime import date, time, datetime
+from datetime import date, time, datetime, timezone
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import redis
-import time
-from datetime import datetime
 from dateutil import parser
 from zoneinfo import ZoneInfo  # Built-in in Python 3.9+
+import pika
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+
 INDIA_TZ = ZoneInfo("Asia/Kolkata")
+load_dotenv()
 
 r = redis.Redis(
       host=os.getenv("contest_host"),
@@ -27,6 +28,19 @@ r = redis.Redis(
     password=os.getenv("contest_password"),
 )
  
+params = pika.URLParameters(os.getenv("RABBITMQ_URL"))
+connection = pika.BlockingConnection(params)
+channel = connection.channel()
+
+redis_client = redis.Redis(
+    host= os.getenv("leaderboard_queue_host"),  
+    port=os.getenv("leaderboard_queue_port"),
+    decode_responses=True,
+    username=os.getenv("contest_username"),
+    password= os.getenv("leaderboard_queue_password") # optional: gets strings instead of bytes
+)
+
+channel.queue_declare(queue='contest_user_submissions', durable=True)
 TEMPLATE_KEY = os.getenv("contest_template_key")
 SCHEDULE_KEY = os.getenv("contest_schedule_key")
  
@@ -114,16 +128,14 @@ def compexlity_analysis(request):
             "space complexity":message_response.split()[1]
         }})
 
- 
-
-
+@csrf_exempt
 def convert_dates(obj):
    
     if isinstance(obj, (datetime, date, time)):
         return obj.isoformat()
     raise TypeError(f"Type {type(obj)} not serializable")
 
-
+@csrf_exempt
 def create_template(template_id, title, description, tags, prize):
     template_data = {
         "title": title,
@@ -276,6 +288,8 @@ def contest_start(request):
                     if current_timestamp >= start_ts:
                         if problems_id_raw:
                             try:
+                                redis_key = f"leaderboard:{contest_id}"
+                                
                                 contest_data["problems_id"] = json.loads(problems_id_raw)
                             except json.JSONDecodeError:
                                 contest_data["problems_id"] = []
@@ -340,7 +354,6 @@ def delete_all_templates(request):
 
 
 @csrf_exempt
- 
 def view_all_scheduled_contests(request):
     if request.method == "GET":
         try:
@@ -369,3 +382,250 @@ def view_all_scheduled_contests(request):
 @csrf_exempt
 def test(request):
     return JsonResponse({"message":"success"})
+
+def parse_iso_datetime(dt_str):
+    """Parses ISO datetime string (e.g., '2025-05-23T09:23:14Z') into a timezone-aware datetime object."""
+    return datetime.fromisoformat(dt_str.replace("Z", "+00:00")).astimezone(timezone.utc)
+
+def reward_pointss(contest_start_ts, contest_end_ts, entered_ts, total_test_case, test_cases_passed):
+    contest_start = parse_iso_datetime(contest_start_ts)
+    contest_end = parse_iso_datetime(contest_end_ts)
+    entered = parse_iso_datetime(entered_ts)
+
+    if entered < contest_start or entered > contest_end:
+        return 0
+
+    base_points = 100
+    points_per_test_case = 100
+    accuracy_ratio = test_cases_passed / total_test_case if total_test_case else 0
+    earned_points =  int(points_per_test_case * accuracy_ratio )
+
+    return earned_points
+
+def rank_users_by_entry_time(users_data):
+    valid_entries = []
+    for user in users_data:
+        contest_start = parse_iso_datetime(user['contest_start_ts'])
+        entered = parse_iso_datetime(user['entered_ts'])
+        time_diff = (entered - contest_start).total_seconds()
+        if time_diff >= 0:
+            valid_entries.append((user['user_id'], time_diff))
+    valid_entries.sort(key=lambda x: x[1])
+    return [user_id for user_id, _ in valid_entries]
+import re
+
+def sanitize_group_name(name: str) -> str:
+    # Replace invalid characters with underscores
+    return re.sub(r"[^a-zA-Z0-9_\-\.]", "_", name)[:90] 
+
+@csrf_exempt
+def consumer(ch, method, properties, body):
+    try:
+        data = json.loads(body)
+        print(f"[DATA] {data}")
+        user_id = str(data["user_id"])
+        total_test_case = data["total_tests"]
+        test_cases_passed = data["test_cases_passed"]
+        status = data["status"]
+        problem_id = data["problem_id"]
+
+        contest_par = Contest_Particpants.objects.filter(user=user_id, active=True).select_related('contest').first()
+
+        if contest_par:
+            serializer_contest = ContestParticipantSerializer(contest_par)
+            serialized_data = serializer_contest.data
+            print("serialized_data",serialized_data)
+            contest_id = contest_par.contest.id
+            contest_start_ts = serialized_data['contest']['start_datetime']
+            contest_end_ts = serialized_data['contest']['end_datetime']
+            entered_ts = serialized_data['entered_time']
+
+            if problem_id  in serialized_data['contest']['problems_id']:
+                reward_point = reward_pointss(
+                    contest_start_ts, contest_end_ts, entered_ts,
+                    total_test_case, test_cases_passed
+                )
+                print(f"[✓] Reward points for user {user_id}: {reward_point}")
+                reward_points = int(reward_point)
+                redis_key = f"leaderboard:{contest_par.contest.id}"
+                leaderboard_entry = Contest_Leaderboard.objects.filter(contest_participant=contest_par).first()
+                if not leaderboard_entry:
+                    leaderboard_entry = Contest_Leaderboard.objects.create(
+                        contest_participant=contest_par,
+                        total_solved_problem=[],
+                        reward_points=reward_points
+                    )
+                    leaderboard_entry.save()
+                else:
+                        solved_problems = leaderboard_entry.total_solved_problem or []
+                        if problem_id not in solved_problems:
+                            solved_problems.append(problem_id)
+                            reward_points = leaderboard_entry.reward_points or 0
+                            reward_points += reward_point
+                            leaderboard_entry.total_solved_problem = solved_problems
+                            leaderboard_entry.save()
+
+                redis_client.zadd(redis_key,{user_id: reward_points})
+                channel_layer = get_channel_layer()
+                group_name = f"leaderboard_{sanitize_group_name(str(contest_id))}"
+                async_to_sync(channel_layer.group_send)(
+                    group_name,
+                    {
+                        "type": "leaderboard_message",
+                        "message": backend_leaderboard(contest_id)
+                    }
+                )
+
+                print(f"[✓] Leaderboard updated for user {user_id} in contest {contest_par.contest.id}")
+
+        ch.basic_ack(delivery_tag=method.delivery_tag)
+
+    except Exception as e:
+        print(f"[!] Error: {e}")
+        ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+
+@csrf_exempt
+def get_leaderboard(request):
+    contest_id = request.GET.get("contest_id")
+    redis_key = f"leaderboard:{contest_id}"
+    leaderboard_data = redis_client.zrevrange(redis_key, 0, -1, withscores=True)
+
+    if not leaderboard_data:
+        return []
+
+    user_ids = [int(uid) for uid, _ in leaderboard_data]
+    users = Users.objects.filter(id__in=user_ids)
+    user_map = {user.id: user.username for user in users}
+
+    # Group users by score
+    score_groups = {}
+    for uid, score in leaderboard_data:
+        uid = int(uid)
+        score = int(score)
+        score_groups.setdefault(score, []).append(uid)
+
+    final_leaderboard = []
+
+    for score in sorted(score_groups.keys(), reverse=True):
+        tied_users = score_groups[score]
+        
+        if len(tied_users) == 1:
+            uid = tied_users[0]
+            final_leaderboard.append({
+                "user_id": uid,
+                "user_name": user_map.get(uid, "Unknown"),
+                "score": score
+            })
+        else:
+            participants = Contest_Particpants.objects.filter(
+                user_id__in=tied_users,
+                contest_id=contest_id
+            ).select_related('contest')
+
+            user_entry_data = []
+            for part in participants:
+                user_entry_data.append({
+                    "user_id": part.user_id,
+                    "entered_ts": part.entered_time.isoformat(),
+                    "contest_start_ts": part.contest.start_datetime.isoformat()
+                })
+
+            sorted_user_ids = rank_users_by_entry_time(user_entry_data)
+            for uid in sorted_user_ids:
+                final_leaderboard.append({
+                    "user_id": uid,
+                    "user_name": user_map.get(uid, "Unknown"),
+                    "score": score
+                })
+    #final_leaderboard = json.dumps(final_leaderboard, default=convert_dates)
+    return JsonResponse({"message":final_leaderboard})
+
+def backend_leaderboard(contest_id):
+    #contest_id = request.GET.get("contest_id")
+    redis_key = f"leaderboard:{contest_id}"
+    leaderboard_data = redis_client.zrevrange(redis_key, 0, -1, withscores=True)
+
+    if not leaderboard_data:
+        return []
+
+    user_ids = [int(uid) for uid, _ in leaderboard_data]
+    users = Users.objects.filter(id__in=user_ids)
+    user_map = {user.id: user.username for user in users}
+
+    # Group users by score
+    score_groups = {}
+    for uid, score in leaderboard_data:
+        uid = int(uid)
+        score = int(score)
+        score_groups.setdefault(score, []).append(uid)
+
+    final_leaderboard = []
+
+    for score in sorted(score_groups.keys(), reverse=True):
+        tied_users = score_groups[score]
+        
+        if len(tied_users) == 1:
+            uid = tied_users[0]
+            final_leaderboard.append({
+                "user_id": uid,
+                "user_name": user_map.get(uid, "Unknown"),
+                "score": score
+            })
+        else:
+            participants = Contest_Particpants.objects.filter(
+                user_id__in=tied_users,
+                contest_id=contest_id
+            ).select_related('contest')
+
+            user_entry_data = []
+            for part in participants:
+                user_entry_data.append({
+                    "user_id": part.user_id,
+                    "entered_ts": part.entered_time.isoformat(),
+                    "contest_start_ts": part.contest.start_datetime.isoformat()
+                })
+
+            sorted_user_ids = rank_users_by_entry_time(user_entry_data)
+            for uid in sorted_user_ids:
+                final_leaderboard.append({
+                    "user_id": uid,
+                    "user_name": user_map.get(uid, "Unknown"),
+                    "score": score
+                })
+    return final_leaderboard
+
+
+@csrf_exempt
+def start_consuming(request):
+    if request.method == "GET":
+        channel.basic_consume(queue='contest_user_submissions', on_message_callback=consumer)
+
+        print('[*] Waiting for messages in contest_user_submissions. To exit press CTRL+C')
+        channel.start_consuming()
+
+        return JsonResponse({"message":"success"})
+
+ 
+@csrf_exempt
+def contest_registration(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            user_id = data.get("user_id")
+            contest_id = data.get("contest_id")
+
+            if not user_id or not contest_id:
+                return JsonResponse({"error": "User ID and Contest ID are required."}, status=400)
+
+            registration = Contest_Particpants.objects.filter(user_id=user_id, contest_id=contest_id).first()
+            if not registration:
+                registration = Contest_Particpants.objects.create(user_id=user_id, contest_id=contest_id, active=True)
+
+            return JsonResponse({
+                "message": "User registered successfully.",
+                "registration": registration.id
+            })
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+    return JsonResponse({"error": "Invalid method"}, status=405)
