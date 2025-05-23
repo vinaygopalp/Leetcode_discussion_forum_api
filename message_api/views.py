@@ -2,7 +2,6 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .serializer import *
 from chat.models import Message,ChatRoom, ScheduledContest,Users,Problem, Contest_Particpants, Contest_Leaderboard
-from django.shortcuts import redirect
 import json
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -11,12 +10,11 @@ from datetime import date, time, datetime, timezone
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import redis
+import time
 from dateutil import parser
 from zoneinfo import ZoneInfo  # Built-in in Python 3.9+
 import pika
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
-
+load_dotenv()
 INDIA_TZ = ZoneInfo("Asia/Kolkata")
 load_dotenv()
 
@@ -180,9 +178,6 @@ def schedule_contest(contest_id, template_id, start_datetime, end_datetime, prob
         end_datetime=end_dt,
         problems_id=problems_id
     )
-
-    print(f"[SCHEDULED] Contest: {contest_id} | Start (IST): {start_dt} | End (IST): {end_dt}")
-
  
 @csrf_exempt
 def contest_template(request):
@@ -233,9 +228,7 @@ def schedule_contest_view(request):
 
             start_datetime = f"{start_date} {start_time}"
             end_datetime = f"{end_date} {end_time}"
-
-            print(f"[RECEIVED] IST datetime strings -> Start: {start_datetime}, End: {end_datetime}")
-
+ 
             schedule_contest(contest_id, template_id, start_datetime, end_datetime, problems_id_int)
 
             return JsonResponse({"message": "Contest scheduled successfully"})
@@ -251,7 +244,6 @@ def contest_start(request):
     if request.method == "GET":
         try:
             current_timestamp = int(time.time())  
-            
             scheduled_contests = r.zrange(SCHEDULE_KEY, 0, -1)  
             
             contests_data = []
@@ -278,7 +270,6 @@ def contest_start(request):
                     if current_timestamp >= end_ts:
                         r.delete(contest_key)
                         r.zrem(SCHEDULE_KEY, contest_id)
-                        print(f"Contest {contest_id} deleted")
                         template_id = contest_data.get("template_id")
                         if template_id:
                             r.hdel(TEMPLATE_KEY, template_id)
@@ -359,13 +350,10 @@ def view_all_scheduled_contests(request):
         try:
           
             scheduled_contests = r.zrange(SCHEDULE_KEY, 0, -1)  
-            print(f"Scheduled Contest IDs: {scheduled_contests}")  
-
             contests_data = []
             for contest_id in scheduled_contests:
                 contest_key = f"contest:{contest_id}"
                 contest_data = r.hgetall(contest_key)
-                print(f"Contest {contest_id} data: {contest_data}") 
                 if contest_data:
                     contests_data.append(contest_data)
 
@@ -422,7 +410,6 @@ def sanitize_group_name(name: str) -> str:
 def consumer(ch, method, properties, body):
     try:
         data = json.loads(body)
-        print(f"[DATA] {data}")
         user_id = str(data["user_id"])
         total_test_case = data["total_tests"]
         test_cases_passed = data["test_cases_passed"]
@@ -434,7 +421,6 @@ def consumer(ch, method, properties, body):
         if contest_par:
             serializer_contest = ContestParticipantSerializer(contest_par)
             serialized_data = serializer_contest.data
-            print("serialized_data",serialized_data)
             contest_id = contest_par.contest.id
             contest_start_ts = serialized_data['contest']['start_datetime']
             contest_end_ts = serialized_data['contest']['end_datetime']
@@ -445,7 +431,6 @@ def consumer(ch, method, properties, body):
                     contest_start_ts, contest_end_ts, entered_ts,
                     total_test_case, test_cases_passed
                 )
-                print(f"[✓] Reward points for user {user_id}: {reward_point}")
                 reward_points = int(reward_point)
                 redis_key = f"leaderboard:{contest_par.contest.id}"
                 leaderboard_entry = Contest_Leaderboard.objects.filter(contest_participant=contest_par).first()
@@ -475,8 +460,6 @@ def consumer(ch, method, properties, body):
                         "message": backend_leaderboard(contest_id)
                     }
                 )
-
-                print(f"[✓] Leaderboard updated for user {user_id} in contest {contest_par.contest.id}")
 
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
@@ -599,10 +582,8 @@ def backend_leaderboard(contest_id):
 def start_consuming(request):
     if request.method == "GET":
         channel.basic_consume(queue='contest_user_submissions', on_message_callback=consumer)
-
         print('[*] Waiting for messages in contest_user_submissions. To exit press CTRL+C')
         channel.start_consuming()
-
         return JsonResponse({"message":"success"})
 
  
@@ -612,8 +593,8 @@ def contest_registration(request):
         try:
             data = json.loads(request.body)
             user_id = data.get("user_id")
-            contest_id = data.get("contest_id")
-
+            contest_title = data.get("contest_title")
+            contest_id = ScheduledContest.objects.filter(contest_id=contest_title).values_list('id', flat=True).first()
             if not user_id or not contest_id:
                 return JsonResponse({"error": "User ID and Contest ID are required."}, status=400)
 
