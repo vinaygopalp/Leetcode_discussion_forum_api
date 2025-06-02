@@ -24,7 +24,7 @@ urlpatterns = [
     path('test/', views.test, name="test"),
     path('contest_registration/', views.contest_registration, name="contest_registration"),
    path("leaderboard/", views.get_leaderboard, name="rabbitmq_consume"),
-   path("consumer/",views.start_consuming, name="consumer"),
+   path("consumer/",views.consumer_threading, name="consumer"),
      
 # 
 ]
