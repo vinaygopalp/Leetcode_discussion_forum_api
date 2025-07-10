@@ -45,7 +45,7 @@ class ScheduledContest(models.Model):
     start_datetime = models.DateTimeField()
     end_datetime = models.DateTimeField()
     problems_id = models.JSONField()
-
+    prizes = models.JSONField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
     @property

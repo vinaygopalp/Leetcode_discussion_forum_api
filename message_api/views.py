@@ -146,7 +146,7 @@ def create_template(template_id, title, description, tags, prize):
     r.hset(TEMPLATE_KEY, template_id, json.dumps(template_data))
 
 @csrf_exempt
-def schedule_contest(contest_id, template_id, start_datetime, end_datetime, problems_id):
+def schedule_contest(contest_id, template_id, start_datetime, end_datetime, problems_id, prizes):
     # Parse and convert to IST
     start_dt = parser.parse(start_datetime)
     end_dt = parser.parse(end_datetime)
@@ -160,13 +160,14 @@ def schedule_contest(contest_id, template_id, start_datetime, end_datetime, prob
         end_dt = end_dt.replace(tzinfo=ZoneInfo("Asia/Kolkata"))
     else:
         end_dt = end_dt.astimezone(ZoneInfo("Asia/Kolkata"))
-
+     
     contest_data = {
         "contest_id": contest_id,
         "template_id": template_id,
         "start_datetime": start_dt.isoformat(),
         "end_datetime": end_dt.isoformat(),
-        "problems_id": json.dumps(problems_id)
+        "problems_id": json.dumps(problems_id),
+        "prizes":  json.dumps(prizes) if prizes else [],
     }
     
 
@@ -178,7 +179,8 @@ def schedule_contest(contest_id, template_id, start_datetime, end_datetime, prob
         template_id=template_id,
         start_datetime=start_dt,
         end_datetime=end_dt,
-        problems_id=problems_id
+        problems_id=problems_id,
+        prizes=prizes if prizes else [],
     )
  
 @csrf_exempt
@@ -215,7 +217,7 @@ def schedule_contest_view(request):
             problems_id = data.get("problems_id", [])
             contest_id = data.get("title", "").strip()
             template_id = data.get("title", "").strip()
-
+            prizes = data.get("prizes", [])
             if not (start_date and start_time and end_date and end_time):
                 return JsonResponse({"error": "All date and time fields are required."}, status=400)
 
@@ -231,7 +233,7 @@ def schedule_contest_view(request):
             start_datetime = f"{start_date} {start_time}"
             end_datetime = f"{end_date} {end_time}"
  
-            schedule_contest(contest_id, template_id, start_datetime, end_datetime, problems_id_int)
+            schedule_contest(contest_id, template_id, start_datetime, end_datetime, problems_id_int, prizes)
 
             return JsonResponse({"message": "Contest scheduled successfully"})
 
@@ -288,7 +290,7 @@ def contest_start(request):
                             contest_data["problems_id"] = []
                     else:
                         contest_data["problems_id"] = []
-
+                    contest_data["prize"] = ScheduledContest.objects.filter(contest_id=contest_id).values_list('prizes', flat=True).first()
                     contests_data.append(contest_data)
 
             return JsonResponse({"contests": contests_data})
@@ -480,64 +482,67 @@ def consumer(ch, method, properties, body):
 @csrf_exempt
 @api_view(['GET'])
 def get_leaderboard(request):
-    if request.method == "GET":
-        contest_title = request.GET.get("contest_title")
-        contest_id = ScheduledContest.objects.filter(contest_id=contest_title).values_list('id', flat=True).first()
-        if not contest_id:
-            return JsonResponse({"error": "Contest not found."}, status=404)
-        redis_key = f"leaderboard:{contest_id}"
-        leaderboard_data = redis_client.zrevrange(redis_key, 0, -1, withscores=True)
+    try:
+        if request.method == "GET":
+            contest_title = request.GET.get("contest_title")
+            contest_id = ScheduledContest.objects.filter(contest_id=contest_title).values_list('id', flat=True).first()
+            if not contest_id:
+                return JsonResponse({"error": "Contest not found."}, status=404)
+            redis_key = f"leaderboard:{contest_id}"
+            leaderboard_data = redis_client.zrevrange(redis_key, 0, -1, withscores=True)
 
-        if not leaderboard_data:
-            return []
+            if not leaderboard_data:
+                return JsonResponse({"message": []})
 
-        user_ids = [int(uid) for uid, _ in leaderboard_data]
-        users = Users.objects.filter(id__in=user_ids)
-        user_map = {user.id: user.username for user in users}
+            user_ids = [int(uid) for uid, _ in leaderboard_data]
+            users = Users.objects.filter(id__in=user_ids)
+            user_map = {user.id: user.username for user in users}
 
-        # Group users by score
-        score_groups = {}
-        for uid, score in leaderboard_data:
-            uid = int(uid)
-            score = int(score)
-            score_groups.setdefault(score, []).append(uid)
+            # Group users by score
+            score_groups = {}
+            for uid, score in leaderboard_data:
+                uid = int(uid)
+                score = int(score)
+                score_groups.setdefault(score, []).append(uid)
 
-        final_leaderboard = []
+            final_leaderboard = []
 
-        for score in sorted(score_groups.keys(), reverse=True):
-            tied_users = score_groups[score]
-            
-            if len(tied_users) == 1:
-                uid = tied_users[0]
-                final_leaderboard.append({
-                    "user_id": uid,
-                    "user_name": user_map.get(uid, "Unknown"),
-                    "score": score
-                })
-            else:
-                participants = Contest_Particpants.objects.filter(
-                    user_id__in=tied_users,
-                    contest_id=contest_id
-                ).select_related('contest')
-
-                user_entry_data = []
-                for part in participants:
-                    user_entry_data.append({
-                        "user_id": part.user_id,
-                        "entered_ts": part.entered_time.isoformat(),
-                        "contest_start_ts": part.contest.start_datetime.isoformat()
-                    })
-
-                sorted_user_ids = rank_users_by_entry_time(user_entry_data)
-                for uid in sorted_user_ids:
+            for score in sorted(score_groups.keys(), reverse=True):
+                tied_users = score_groups[score]
+                
+                if len(tied_users) == 1:
+                    uid = tied_users[0]
                     final_leaderboard.append({
                         "user_id": uid,
                         "user_name": user_map.get(uid, "Unknown"),
                         "score": score
                     })
-        #final_leaderboard = json.dumps(final_leaderboard, default=convert_dates)
-        return JsonResponse({"message":final_leaderboard})
+                else:
+                    participants = Contest_Particpants.objects.filter(
+                        user_id__in=tied_users,
+                        contest_id=contest_id
+                    ).select_related('contest')
 
+                    user_entry_data = []
+                    for part in participants:
+                        user_entry_data.append({
+                            "user_id": part.user_id,
+                            "entered_ts": part.entered_time.isoformat(),
+                            "contest_start_ts": part.contest.start_datetime.isoformat()
+                        })
+
+                    sorted_user_ids = rank_users_by_entry_time(user_entry_data)
+                    for uid in sorted_user_ids:
+                        final_leaderboard.append({
+                            "user_id": uid,
+                            "user_name": user_map.get(uid, "Unknown"),
+                            "score": score
+                        })
+            #final_leaderboard = json.dumps(final_leaderboard, default=convert_dates)
+            return JsonResponse({"message":final_leaderboard})
+    except Exception as e:
+        print(f"[!] Error: {e}")
+        return JsonResponse({"error": str(e)}, status=500)
 def backend_leaderboard(contest_id):
     #contest_id = request.GET.get("contest_id")
     redis_key = f"leaderboard:{contest_id}"
