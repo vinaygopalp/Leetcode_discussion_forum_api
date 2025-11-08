@@ -247,7 +247,7 @@ def schedule_contest_view(request):
 def contest_start(request):
     if request.method == "GET":
         try:
-            current_time = datetime.now(INDIA_TZ)  # ✅ IST time directly
+            current_time = datetime.now(INDIA_TZ)  
             scheduled_contests = r.zrange(SCHEDULE_KEY, 0, -1)
 
             contests_data = []
@@ -267,7 +267,7 @@ def contest_start(request):
                     end_datetime = datetime.fromisoformat(contest_data.get("end_datetime")).astimezone(INDIA_TZ)
                     problems_id_raw = contest_data.get("problems_id")
                      
-                    # ✅ Delete if contest has ended
+                    #  Delete if contest has ended
                     if current_time >= end_datetime:
                         r.delete(contest_key)
                         r.zrem(SCHEDULE_KEY, contest_id)
@@ -279,7 +279,7 @@ def contest_start(request):
                         print("Fsfsdsss",cont)
                         continue  # Skip this contest from the response
 
-                    # ✅ Determine if contest has started
+                    # Determine if contest has started
                     if current_time >= start_datetime:
                         if problems_id_raw:
                             try:
